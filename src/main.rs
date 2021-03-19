@@ -49,6 +49,7 @@ fn main() -> Result<()> {
     eprintln!("Capturing background ...");
     let background = read_rgb_tensor(&mut input_stream, WIDTH, HEIGHT)?;
 
+    eprintln!("Started streaming");
     loop {
         let frame = read_rgb_tensor(&mut input_stream, WIDTH, HEIGHT)?;
         let output = model.crop(frame, background.to(device))?;
