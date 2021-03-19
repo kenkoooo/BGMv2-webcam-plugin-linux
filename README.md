@@ -28,7 +28,10 @@ After downloading the TorchScript weights of your choice
 like the following:
 
 ```
-cargo run --release -- --model-checkpoint torchscript_resnet101_fp32.pth --source-device=/dev/video0 --target-device=/dev/video1
+cargo run --release -- \
+    --model-checkpoint torchscript_resnet101_fp32.pth \
+    --source-device=/dev/video0 \
+    --target-device=/dev/video1
 ```
 
 -   `model-checkpoint`: Filepath of your TorchScript
