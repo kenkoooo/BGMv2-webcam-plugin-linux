@@ -1,0 +1,11 @@
+[package]
+name = "bgm"
+version = "0.1.0"
+authors = ["kenkoooo"]
+edition = "2018"
+
+[dependencies]
+anyhow = "1.0.38"
+clap = "3.0.0-beta.2"
+tch = "0.3.1"
+v4l = "0.12.0"
