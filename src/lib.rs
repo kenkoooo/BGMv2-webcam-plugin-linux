@@ -2,6 +2,9 @@ use anyhow::{anyhow, Result};
 use tch::{CModule, Device, IValue, Kind, Tensor};
 use v4l::{io::traits::CaptureStream, prelude::MmapStream};
 
+const MODEL_KIND: Kind = Kind::Float;
+const IMAGE_KIND: Kind = Kind::Uint8;
+
 pub struct BGModel {
     model: CModule,
     device: Device,
@@ -9,7 +12,8 @@ pub struct BGModel {
 
 impl BGModel {
     pub fn load<T: AsRef<std::path::Path>>(path: T, device: Device) -> Result<Self> {
-        let mut model = CModule::load_on_device(path, device)?;
+        let mut model = CModule::load(path)?;
+        model.to(device, MODEL_KIND, true);
         model.set_eval();
         Ok(Self { device, model })
     }
@@ -38,9 +42,9 @@ impl BGModel {
         let target_background = Tensor::of_slice(&[120.0, 255.0, 155.0])
             .to(self.device)
             .view([1, 3, 1, 1])
-            .to_kind(Kind::Float);
+            .to_kind(MODEL_KIND);
         let composite: Tensor = &alpha * &foreground * 255.0 + (1 - &alpha) * &target_background;
-        Ok(composite.to_kind(Kind::Uint8))
+        Ok(composite.to_kind(IMAGE_KIND))
     }
 }
 
@@ -120,7 +124,7 @@ pub fn read_rgb_tensor(input_stream: &mut MmapStream, width: u32, height: u32) -
     let tensor = Tensor::of_slice(&rgb)
         .view([1, height as i64, width as i64, 3])
         .permute(&[0, 3, 1, 2])
-        .to_kind(Kind::Float)
+        .to_kind(MODEL_KIND)
         / 255.0;
     Ok(tensor)
 }

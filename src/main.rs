@@ -1,3 +1,5 @@
+use std::time::Instant;
+
 use anyhow::Result;
 use bgm::{read_rgb_tensor, to_yuyv_vec, BGModel};
 use clap::Clap;
@@ -50,6 +52,9 @@ fn main() -> Result<()> {
     let background = read_rgb_tensor(&mut input_stream, WIDTH, HEIGHT)?;
 
     eprintln!("Started streaming");
+
+    let mut steps = 0;
+    let mut prev = Instant::now();
     loop {
         let frame = read_rgb_tensor(&mut input_stream, WIDTH, HEIGHT)?;
         let output = model.crop(frame, background.to(device))?;
@@ -58,5 +63,14 @@ fn main() -> Result<()> {
         let (buf_out, buf_out_meta) = OutputStream::next(&mut output_stream)?;
         buf_out.copy_from_slice(&yuyv);
         buf_out_meta.field = 0;
+
+        steps += 1;
+        if steps == 60 {
+            steps = 0;
+            let nanos_60frame = prev.elapsed().as_nanos();
+            let fps = 1e9 * 60.0 / nanos_60frame as f64;
+            eprintln!("FPS: {}", fps);
+            prev = Instant::now();
+        }
     }
 }
