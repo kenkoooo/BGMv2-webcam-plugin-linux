@@ -5,6 +5,8 @@ use v4l::{io::traits::CaptureStream, prelude::MmapStream};
 const MODEL_KIND: Kind = Kind::Float;
 const IMAGE_KIND: Kind = Kind::Uint8;
 
+const GREEN_BACKGROUND_RGB: [f64; 3] = [120.0, 255.0, 155.0];
+
 pub struct BGModel {
     model: CModule,
     device: Device,
@@ -39,10 +41,10 @@ impl BGModel {
 
     pub fn crop(&self, source: Tensor, background: Tensor) -> Result<Tensor> {
         let (alpha, foreground) = self.forward(source, background)?;
-        let target_background = Tensor::of_slice(&[120.0, 255.0, 155.0])
-            .to(self.device)
+        let target_background = Tensor::of_slice(&GREEN_BACKGROUND_RGB)
             .view([1, 3, 1, 1])
-            .to_kind(MODEL_KIND);
+            .to_kind(MODEL_KIND)
+            .to(self.device);
         let composite: Tensor = &alpha * &foreground * 255.0 + (1 - &alpha) * &target_background;
         Ok(composite.to_kind(IMAGE_KIND))
     }
