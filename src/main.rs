@@ -1,4 +1,4 @@
-use std::time::Instant;
+use std::{fs::File, time::Instant};
 
 use anyhow::Result;
 use bgm::{read_rgb_tensor, to_yuyv_vec, BGModel};
@@ -45,14 +45,14 @@ fn main() -> Result<()> {
     let mut output_stream = MmapStream::with_buffers(&mut output, VideoOutput, 4)?;
 
     eprintln!("Capturing background ...");
-    let background = read_rgb_tensor(&mut input_stream, args.width, args.height)?;
+    let background = read_rgb_tensor(&mut input_stream, args.width, args.height)?.to(device);
 
     eprintln!("Started streaming");
     let mut frame_count = 0;
     let mut prev = Instant::now();
     loop {
         let frame = read_rgb_tensor(&mut input_stream, args.width, args.height)?;
-        let output = model.crop(frame, background.to(device))?;
+        let output = model.crop(frame, background.shallow_clone())?;
         let mut yuyv = to_yuyv_vec(&output, args.width, args.height);
 
         let (buf_out, buf_out_meta) = OutputStream::next(&mut output_stream)?;

@@ -10,6 +10,7 @@ const GREEN_BACKGROUND_RGB: [f64; 3] = [120.0, 255.0, 155.0];
 pub struct BGModel {
     model: CModule,
     device: Device,
+    target_background: Tensor,
 }
 
 impl BGModel {
@@ -17,15 +18,25 @@ impl BGModel {
         let mut model = CModule::load(path)?;
         model.to(device, MODEL_KIND, true);
         model.set_eval();
-        Ok(Self { device, model })
+        let target_background = Tensor::of_slice(&GREEN_BACKGROUND_RGB)
+            .view([1, 3, 1, 1])
+            .to_kind(MODEL_KIND)
+            .to(device);
+        Ok(Self {
+            device,
+            model,
+            target_background,
+        })
     }
 
     pub fn forward(&self, source: Tensor, background: Tensor) -> Result<(Tensor, Tensor)> {
         let source = source.to(self.device);
         let background = background.to(self.device);
+
         let out = self
             .model
             .forward_is(&[IValue::Tensor(source), IValue::Tensor(background)])?;
+
         let tuple = out.to_tuple()?;
         let mut iter = tuple.into_iter();
         let alpha = iter
@@ -41,11 +52,7 @@ impl BGModel {
 
     pub fn crop(&self, source: Tensor, background: Tensor) -> Result<Tensor> {
         let (alpha, foreground) = self.forward(source, background)?;
-        let target_background = Tensor::of_slice(&GREEN_BACKGROUND_RGB)
-            .view([1, 3, 1, 1])
-            .to_kind(MODEL_KIND)
-            .to(self.device);
-        let composite: Tensor = &alpha * &foreground * 255.0 + (1 - &alpha) * &target_background;
+        let composite: Tensor = &alpha * &foreground * 255 + (1 - &alpha) * &self.target_background;
         Ok(composite.to_kind(IMAGE_KIND))
     }
 }
@@ -99,6 +106,7 @@ fn yuyv2rgb(yuyv: &[u8]) -> Vec<u8> {
 }
 
 fn rgb2yuyv(rgb: &[u8]) -> Vec<u8> {
+    let _fg = flame::start_guard("rgb2yuyv");
     assert_eq!(rgb.len() % 3, 0);
     let length = rgb.len() / 3;
     let mut yuyv = vec![0; length * 2];
