@@ -106,7 +106,6 @@ fn yuyv2rgb(yuyv: &[u8]) -> Vec<u8> {
 }
 
 fn rgb2yuyv(rgb: &[u8]) -> Vec<u8> {
-    let _fg = flame::start_guard("rgb2yuyv");
     assert_eq!(rgb.len() % 3, 0);
     let length = rgb.len() / 3;
     let mut yuyv = vec![0; length * 2];
