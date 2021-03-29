@@ -1,4 +1,4 @@
-use std::{fs::File, time::Instant};
+use std::time::Instant;
 
 use anyhow::Result;
 use bgm::{read_rgb_tensor, to_yuyv_vec, BGModel};
